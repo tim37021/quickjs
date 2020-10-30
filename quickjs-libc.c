@@ -28,24 +28,68 @@
 #include <inttypes.h>
 #include <string.h>
 #include <assert.h>
-#include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <sys/time.h>
 #include <time.h>
 #include <signal.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include <dirent.h>
 #if defined(_WIN32)
 #include <windows.h>
 #include <conio.h>
-#include <utime.h>
+#include <sys/utime.h>
+#include "win/dirent.h"
+#include <direct.h>
+#ifndef PATH_MAX
+    #define PATH_MAX MAX_PATH
+#endif
+#define popen _popen
+#define pclose _pclose
+typedef int64_t ssize_t;
+#include <io.h>
+#define open _open
+#define close _close
+#define read _read
+#define write _write
+#define getcwd _getcwd
+#define chdir _chdir
+#define mkdir _mkdir
+#define fdopen _fdopen
+#define lseek _lseek
+#define fileno _fileno
+#define isatty _isatty
+#define WIN32_LEAN_AND_MEAN
+
+static int gettimeofday(struct timeval * tp, struct timezone * tzp)
+{
+  // Note: some broken versions only have 8 trailing zero's, the correct epoch has 9 trailing zero's
+  // This magic number is the number of 100 nanosecond intervals since January 1, 1601 (UTC)
+  // until 00:00:00 January 1, 1970 
+  static const uint64_t EPOCH = ((uint64_t) 116444736000000000ULL);
+
+  SYSTEMTIME  system_time;
+  FILETIME    file_time;
+  uint64_t    time;
+
+  GetSystemTime( &system_time );
+  SystemTimeToFileTime( &system_time, &file_time );
+  time =  ((uint64_t)file_time.dwLowDateTime )      ;
+  time += ((uint64_t)file_time.dwHighDateTime) << 32;
+
+  tp->tv_sec  = (long) ((time - EPOCH) / 10000000L);
+  tp->tv_usec = (long) (system_time.wMilliseconds * 1000);
+  return 0;
+}
+
 #else
+#include <unistd.h>
 #include <dlfcn.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
+#include <sys/time.h>
+#include <utime.h>
+#include <dirent.h>
 
 #if defined(__APPLE__)
 typedef sig_t sighandler_t;

@@ -28,6 +28,10 @@
 #include <string.h>
 #include <assert.h>
 
+#if _MSC_VER
+#include <malloc.h>
+#endif
+
 #include "cutils.h"
 #include "libregexp.h"
 

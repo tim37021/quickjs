@@ -1,0 +1,6 @@
+.vscode
+build
+build*
+repl.c
+qjscalc.c
+*.so
